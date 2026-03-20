@@ -116,12 +116,22 @@ const previewVersion = async () => {
 	version = msNow.toString();
 };
 
+const APP = {
+	APP_TITLE: process.env.APP_TITLE,
+	APP_DESCRIPTION: process.env.APP_DESCRIPTION,
+	APP_AUTHOR: process.env.APP_AUTHOR,
+	OG_IMAGE: process.env.OG_IMAGE,
+	INFO_URL: process.env.INFO_URL,
+	APP_LOGO_URL: process.env.APP_LOGO_URL,
+};
+
 const compressHtml = async () => src(htmlSources)
 	.pipe(ejs({
 		production: version,
 		serverAvailable: false,
 		version,
 		OVERRIDES,
+		APP,
 		query: {},
 	}))
 	.pipe(rename({ extname: '.html' }))
