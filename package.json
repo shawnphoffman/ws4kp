@@ -1,7 +1,7 @@
 {
-	"name": "ws4kp",
+	"name": "my-ws4kp",
 	"version": "6.5.3",
-	"description": "Welcome to the WeatherStar 4000+ project page!",
+	"description": "My custom WeatherStar 4000+ fork",
 	"main": "index.mjs",
 	"type": "module",
 	"scripts": {
@@ -18,14 +18,14 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/netbymatt/ws4kp.git"
+		"url": "git+https://github.com/YOUR_USERNAME/my-ws4kp.git"
 	},
-	"author": "Matt Walsh",
+	"author": "YOUR_NAME",
 	"license": "MIT",
 	"bugs": {
-		"url": "https://github.com/netbymatt/ws4kp/issues"
+		"url": "https://github.com/YOUR_USERNAME/my-ws4kp/issues"
 	},
-	"homepage": "https://github.com/netbymatt/ws4kp#readme",
+	"homepage": "https://github.com/YOUR_USERNAME/my-ws4kp#readme",
 	"devDependencies": {
 		"@aws-sdk/client-cloudfront": "^3.609.0",
 		"@eslint/eslintrc": "^3.3.1",
