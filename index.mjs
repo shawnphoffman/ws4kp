@@ -9,10 +9,27 @@ import playlist from './src/playlist.mjs';
 import OVERRIDES from './src/overrides.mjs';
 import cache from './proxy/cache.mjs';
 import devTools from './src/com.chrome.devtools.mjs';
+import { enrichCities } from './src/city-enrichment.mjs';
 
-const travelCities = JSON.parse(await readFile('./datagenerators/output/travelcities.json'));
+let travelCities = JSON.parse(await readFile('./datagenerators/output/travelcities.json'));
 const regionalCities = JSON.parse(await readFile('./datagenerators/output/regionalcities.json'));
 const stationInfo = JSON.parse(await readFile('./datagenerators/output/stations.json'));
+
+// Merge custom travel cities from env var
+if (process.env.TRAVEL_CITIES_FILE) {
+	try {
+		const customTravel = JSON.parse(await readFile(process.env.TRAVEL_CITIES_FILE));
+		const enrichedTravel = await enrichCities(customTravel);
+		if (process.env.TRAVEL_CITIES_MODE === 'override') {
+			travelCities = enrichedTravel;
+		} else {
+			travelCities = [...travelCities, ...enrichedTravel];
+		}
+		console.log(`Custom travel cities loaded (${process.env.TRAVEL_CITIES_MODE || 'append'} mode): ${customTravel.length} cities`);
+	} catch (e) {
+		console.error('Failed to load custom travel cities:', e.message);
+	}
+}
 
 const app = express();
 const port = process.env.WS4KP_PORT ?? 8080;
@@ -28,6 +45,16 @@ app.set('view engine', 'ejs');
 
 // version
 const { version } = JSON.parse(fs.readFileSync('package.json'));
+
+// app configuration from environment variables
+const APP = {
+	APP_TITLE: process.env.APP_TITLE,
+	APP_DESCRIPTION: process.env.APP_DESCRIPTION,
+	APP_AUTHOR: process.env.APP_AUTHOR,
+	OG_IMAGE: process.env.OG_IMAGE,
+	INFO_URL: process.env.INFO_URL,
+	APP_LOGO_URL: process.env.APP_LOGO_URL,
+};
 
 // read and parse environment variables to append to the query string
 // use the permalink (share) button on the web app to generate a starting point for your configuration
@@ -58,6 +85,7 @@ const renderIndex = (req, res, production = false) => {
 		serverAvailable: !process.env?.STATIC, // Disable caching proxy server in static mode
 		version,
 		OVERRIDES,
+		APP,
 		query: req.query,
 	});
 };
@@ -136,7 +164,20 @@ if (!process.env?.STATIC) {
 	app.get('/playlist.json', playlist);
 }
 
-// Data endpoints - serve JSON data with long-term caching
+// Dynamic manifest.json endpoint (overrides static file)
+app.get('/manifest.json', async (req, res) => {
+	const manifest = JSON.parse(await readFile('./server/manifest.json'));
+	if (APP.APP_TITLE) manifest.name = APP.APP_TITLE;
+	res.json(manifest);
+});
+
+// Data endpoints - serve JSON data with caching
+// Use short cache when custom cities are configured (data may change between restarts)
+const hasCustomCities = !!process.env.TRAVEL_CITIES_FILE;
+const dataCacheControl = hasCustomCities
+	? 'public, max-age=300, must-revalidate'
+	: 'public, max-age=31536000, immutable';
+
 const dataEndpoints = {
 	travelcities: travelCities,
 	regionalcities: regionalCities,
@@ -146,7 +187,7 @@ const dataEndpoints = {
 Object.entries(dataEndpoints).forEach(([name, data]) => {
 	app.get(`/data/${name}.json`, (req, res) => {
 		res.set({
-			'Cache-Control': 'public, max-age=31536000, immutable',
+			'Cache-Control': dataCacheControl,
 			'Content-Type': 'application/json',
 		});
 		res.json(data);
