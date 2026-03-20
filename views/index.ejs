@@ -4,18 +4,18 @@
 
 <head>
   <meta charset="utf-8" />
-  <title>WeatherStar 4000+</title>
-  <meta name="description" content="Web based WeatherStar 4000 simulator that reports current and forecast weather conditions plus a few extras!" />
-  <meta name="keywords" content="WeatherStar 4000+" />
-  <meta name="author" content="Matt Walsh" />
-  <meta name="application-name" content="WeatherStar 4000+" />
+  <title><%= APP?.APP_TITLE || 'WeatherStar 4000+' %></title>
+  <meta name="description" content="<%= APP?.APP_DESCRIPTION || 'Web based WeatherStar 4000 simulator that reports current and forecast weather conditions plus a few extras!' %>" />
+  <meta name="keywords" content="<%= APP?.APP_TITLE || 'WeatherStar 4000+' %>" />
+  <meta name="author" content="<%= APP?.APP_AUTHOR || 'Matt Walsh' %>" />
+  <meta name="application-name" content="<%= APP?.APP_TITLE || 'WeatherStar 4000+' %>" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1">
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="images/logos/logo192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="images/logos/app-icon-180.png" />
-  <meta property="og:image" content="https://weatherstar.netbymatt.com/images/social/1200x600.png">
+  <meta property="og:image" content="<%= APP?.OG_IMAGE || 'https://weatherstar.netbymatt.com/images/social/1200x600.png' %>">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="627">
   <link rel="prefetch" href="fonts/Star4000.woff" as="font" type="font/woff" crossorigin>
@@ -89,7 +89,7 @@
       <div id="container">
         <div id="loading" width="640" height="480">
           <div>
-            <div class="title">WeatherStar 4000+</div>
+            <div class="title"><%= APP?.APP_TITLE || 'WeatherStar 4000+' %></div>
             <div class="version">v<%- version %></div>
             <div class="instructions">Enter your location above to continue</div>
           </div>
@@ -170,7 +170,7 @@
     <br />
 
     <div class="info">
-      <a href="https://github.com/netbymatt/ws4kp#weatherstar-4000">More information</a>
+      <a href="<%= APP?.INFO_URL || 'https://github.com/netbymatt/ws4kp#weatherstar-4000' %>">More information</a>
     </div>
     <div class="media"></div>
 
