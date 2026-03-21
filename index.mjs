@@ -90,16 +90,22 @@ const renderIndex = (req, res, production = false) => {
 	});
 };
 
-const index = (req, res, production = false) => {
+const handleQsRedirect = (req, res) => {
 	// test for no query string in request and if environment query string values were provided
 	if (hasQsVars && Object.keys(req.query).length === 0) {
 		// redirect the user to the query-string appended url
 		const url = new URL(`${req.protocol}://${req.host}${req.url}`);
 		url.search = defaultSearchParams;
 		res.redirect(307, url.toString());
-		return;
+		return true;
 	}
-	renderIndex(req, res, production);
+	return false;
+};
+
+const index = (req, res) => {
+	if (!handleQsRedirect(req, res)) {
+		renderIndex(req, res, false);
+	}
 };
 
 const geoip = (req, res) => {
@@ -201,7 +207,11 @@ if (process.env?.DIST === '1') {
 	app.use('/music', express.static('./server/music', staticOptions));
 
 	// render the EJS template in production mode (serve compressed files from dist directory)
-	app.get('/', (req, res) => index(req, res, true));
+	app.get('/', (req, res) => {
+		if (!handleQsRedirect(req, res)) {
+			renderIndex(req, res, true);
+		}
+	});
 
 	app.use('/', express.static('./dist', staticOptions));
 } else {
