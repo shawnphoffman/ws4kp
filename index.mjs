@@ -196,6 +196,9 @@ Object.entries(dataEndpoints).forEach(([name, data]) => {
 	});
 });
 
+// Serve additional music files (volume-mountable at /app/server/add-music)
+app.use('/music/add-music', express.static('./server/add-music', staticOptions));
+
 if (process.env?.DIST === '1') {
 	// Production ("distribution") mode uses pre-baked files in the dist directory
 	// 'npm run build' and then 'DIST=1 npm start'
