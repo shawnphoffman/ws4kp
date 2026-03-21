@@ -1,7 +1,7 @@
 {
 	"name": "my-ws4kp",
 	"version": "6.5.3",
-	"description": "My custom WeatherStar 4000+ fork",
+	"description": "A customizable fork of WeatherStar 4000+ with env var-driven branding, custom cities, and Docker-first deployment",
 	"main": "index.mjs",
 	"type": "module",
 	"scripts": {
@@ -18,14 +18,14 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/YOUR_USERNAME/my-ws4kp.git"
+		"url": "git+https://github.com/shawnphoffman/ws4kp.git"
 	},
-	"author": "YOUR_NAME",
+	"author": "Shawn Hoffman",
 	"license": "MIT",
 	"bugs": {
-		"url": "https://github.com/YOUR_USERNAME/my-ws4kp/issues"
+		"url": "https://github.com/shawnphoffman/ws4kp/issues"
 	},
-	"homepage": "https://github.com/YOUR_USERNAME/my-ws4kp#readme",
+	"homepage": "https://github.com/shawnphoffman/ws4kp#readme",
 	"devDependencies": {
 		"@aws-sdk/client-cloudfront": "^3.609.0",
 		"@eslint/eslintrc": "^3.3.1",

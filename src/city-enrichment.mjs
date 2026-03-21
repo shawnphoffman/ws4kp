@@ -1,7 +1,7 @@
 // Enrich city data with NOAA grid point information at runtime
 // Reuses the same API pattern as datagenerators/travelcities.mjs
 
-const USER_AGENT = '(WeatherStar 4000+, ws4000@netbymatt.com)';
+const USER_AGENT = '(WeatherStar 4000+ Fork, github.com/shawnphoffman/ws4kp)';
 const CHUNK_SIZE = 5;
 const API_BASE = 'https://api.weather.gov/points';
 
