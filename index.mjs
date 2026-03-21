@@ -176,12 +176,9 @@ app.get('/manifest.json', async (req, res) => {
 	res.json(manifest);
 });
 
-// Data endpoints - serve JSON data with caching
-// Use short cache when custom cities are configured (data may change between restarts)
-const hasCustomCities = !!process.env.TRAVEL_CITIES_FILE;
-const dataCacheControl = hasCustomCities
-	? 'public, max-age=300, must-revalidate'
-	: 'public, max-age=31536000, immutable';
+// Data endpoints - serve JSON data with short cache
+// Data can change between server restarts (custom cities, etc.) so never use immutable
+const dataCacheControl = 'public, max-age=300, must-revalidate';
 
 const dataEndpoints = {
 	travelcities: travelCities,
