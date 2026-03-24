@@ -102,9 +102,9 @@ const handleQsRedirect = (req, res) => {
 	return false;
 };
 
-const index = (req, res) => {
+const index = (req, res, production = false) => {
 	if (!handleQsRedirect(req, res)) {
-		renderIndex(req, res, false);
+		renderIndex(req, res, production);
 	}
 };
 
@@ -206,12 +206,9 @@ if (process.env?.DIST === '1') {
 	app.use('/geoip', geoip);
 	app.use('/music', express.static('./server/music', staticOptions));
 
-	// render the EJS template in production mode (serve compressed files from dist directory)
-	app.get('/', (req, res) => {
-		if (!handleQsRedirect(req, res)) {
-			renderIndex(req, res, true);
-		}
-	});
+	// render the EJS template dynamically for both / and /index.html
+	app.get('/', (req, res) => index(req, res, true));
+	app.get('/index.html', (req, res) => index(req, res, true));
 
 	app.use('/', express.static('./dist', staticOptions));
 } else {
