@@ -14,7 +14,12 @@
 		"lint": "eslint ./server/scripts/**/*.mjs ./proxy/**/*.mjs ./src/**/*.mjs *.mjs",
 		"lint:fix": "eslint --fix ./server/scripts/**/*.mjs ./proxy/**/*.mjs ./src/**/*.mjs *.mjs",
 		"lintall": "eslint ./server/scripts/**/*.mjs ./proxy/**/*.mjs ./src/**/*.mjs *.mjs ./datagenerators/**/*.mjs ./gulp/**/*.mjs ./tests/**/*.mjs",
-		"lintall:fix": "eslint --fix ./server/scripts/**/*.mjs ./proxy/**/*.mjs ./src/**/*.mjs *.mjs ./datagenerators/**/*.mjs ./gulp/**/*.mjs ./tests/**/*.mjs"
+		"lintall:fix": "eslint --fix ./server/scripts/**/*.mjs ./proxy/**/*.mjs ./src/**/*.mjs *.mjs ./datagenerators/**/*.mjs ./gulp/**/*.mjs ./tests/**/*.mjs",
+		"release": "release-it",
+		"release:minor": "release-it minor",
+		"release:major": "release-it major",
+		"release:dry": "release-it --dry-run",
+		"changelog": "auto-changelog -p"
 	},
 	"repository": {
 		"type": "git",
@@ -29,7 +34,9 @@
 	"devDependencies": {
 		"@aws-sdk/client-cloudfront": "^3.609.0",
 		"@eslint/eslintrc": "^3.3.1",
+		"@release-it/conventional-changelog": "^10.0.6",
 		"ajv": "^8.17.1",
+		"auto-changelog": "^2.5.0",
 		"del": "^8.0.0",
 		"eslint": "^10.0.3",
 		"eslint-config-airbnb-base": "15.0.0",
@@ -49,6 +56,7 @@
 		"luxon": "^3.0.0",
 		"metar-taf-parser": "^9.0.0",
 		"nosleep.js": "^0.12.0",
+		"release-it": "^19.2.4",
 		"sass": "^1.54.0",
 		"suncalc": "^1.8.0",
 		"swiped-events": "^1.1.4",
