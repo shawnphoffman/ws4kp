@@ -60,6 +60,14 @@
 			left: 50px;
 			position: absolute;
 			z-index: 10;
+
+			img {
+				display: block;
+				max-width: 85px;
+				max-height: 67px;
+				width: 100%;
+				height: auto;
+			}
 		}
 
 		.noaa-logo {

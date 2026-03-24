@@ -102,9 +102,17 @@ const handleQsRedirect = (req, res) => {
 	return false;
 };
 
-const index = (req, res, production = false) => {
+// NOTE: Do not add a third parameter here — Express passes `next` as the third
+// argument to route handlers, which would be truthy and break the production flag.
+const index = (req, res) => {
 	if (!handleQsRedirect(req, res)) {
-		renderIndex(req, res, production);
+		renderIndex(req, res, false);
+	}
+};
+
+const indexProduction = (req, res) => {
+	if (!handleQsRedirect(req, res)) {
+		renderIndex(req, res, true);
 	}
 };
 
@@ -207,8 +215,8 @@ if (process.env?.DIST === '1') {
 	app.use('/music', express.static('./server/music', staticOptions));
 
 	// render the EJS template dynamically for both / and /index.html
-	app.get('/', (req, res) => index(req, res, true));
-	app.get('/index.html', (req, res) => index(req, res, true));
+	app.get('/', indexProduction);
+	app.get('/index.html', indexProduction);
 
 	app.use('/', express.static('./dist', staticOptions));
 } else {
