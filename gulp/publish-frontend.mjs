@@ -1,35 +1,33 @@
-import 'dotenv/config';
-import {
-	src, dest, series, parallel,
-} from 'gulp';
-import concat from 'gulp-concat';
-import terser from 'gulp-terser';
-import ejs from 'gulp-ejs';
-import rename from 'gulp-rename';
-import htmlmin from 'gulp-html-minifier-terser';
-import { deleteAsync } from 'del';
-import s3Upload from 'gulp-s3-uploader';
-import webpack from 'webpack-stream';
-import TerserPlugin from 'terser-webpack-plugin';
-import { readFile } from 'fs/promises';
-import file from 'gulp-file';
-import { CloudFrontClient, CreateInvalidationCommand } from '@aws-sdk/client-cloudfront';
-import log from 'fancy-log';
-import dartSass from 'sass';
-import gulpSass from 'gulp-sass';
-import sourceMaps from 'gulp-sourcemaps';
-import OVERRIDES from '../src/overrides.mjs';
+import 'dotenv/config'
+import { src, dest, series, parallel } from 'gulp'
+import concat from 'gulp-concat'
+import terser from 'gulp-terser'
+import ejs from 'gulp-ejs'
+import rename from 'gulp-rename'
+import htmlmin from 'gulp-html-minifier-terser'
+import { deleteAsync } from 'del'
+import s3Upload from 'gulp-s3-uploader'
+import webpack from 'webpack-stream'
+import TerserPlugin from 'terser-webpack-plugin'
+import { readFile } from 'fs/promises'
+import file from 'gulp-file'
+import { CloudFrontClient, CreateInvalidationCommand } from '@aws-sdk/client-cloudfront'
+import log from 'fancy-log'
+import dartSass from 'sass'
+import gulpSass from 'gulp-sass'
+import sourceMaps from 'gulp-sourcemaps'
+import OVERRIDES from '../src/overrides.mjs'
 
 // get cloudfront
-import reader from '../src/playlist-reader.mjs';
+import reader from '../src/playlist-reader.mjs'
 
-const sass = gulpSass(dartSass);
+const sass = gulpSass(dartSass)
 
-const clean = () => deleteAsync(['./dist/**/*', '!./dist/readme.txt']);
+const clean = () => deleteAsync(['./dist/**/*', '!./dist/readme.txt'])
 
-const cloudfront = new CloudFrontClient({ region: 'us-east-1' });
+const cloudfront = new CloudFrontClient({ region: 'us-east-1' })
 
-const RESOURCES_PATH = './dist/resources';
+const RESOURCES_PATH = './dist/resources'
 
 // Data is now served as JSON files to avoid redundancy
 
@@ -56,18 +54,15 @@ const webpackOptions = {
 			}),
 		],
 	},
-};
+}
 
 const jsVendorSources = [
 	'server/scripts/vendor/auto/nosleep.js',
 	'server/scripts/vendor/auto/swiped-events.js',
 	'server/scripts/vendor/auto/suncalc.js',
-];
+]
 
-const compressJsVendor = () => src(jsVendorSources)
-	.pipe(concat('vendor.min.js'))
-	.pipe(terser())
-	.pipe(dest(RESOURCES_PATH));
+const compressJsVendor = () => src(jsVendorSources).pipe(concat('vendor.min.js')).pipe(terser()).pipe(dest(RESOURCES_PATH))
 
 const mjsSources = [
 	'server/scripts/modules/currentweatherscroll.mjs',
@@ -88,33 +83,28 @@ const mjsSources = [
 	'server/scripts/modules/media.mjs',
 	'server/scripts/modules/custom-scroll-text.mjs',
 	'server/scripts/index.mjs',
-];
+]
 
-const buildJs = () => src(mjsSources)
-	.pipe(webpack(webpackOptions))
-	.pipe(dest(RESOURCES_PATH));
+const buildJs = () => src(mjsSources).pipe(webpack(webpackOptions)).pipe(dest(RESOURCES_PATH))
 
-const cssSources = [
-	'server/styles/scss/**/*.scss',
-];
-const buildCss = () => src(cssSources)
-	.pipe(sourceMaps.init())
-	.pipe(sass({ style: 'compressed' }).on('error', sass.logError))
-	.pipe(rename({ suffix: '.min' }))
-	.pipe(sourceMaps.write('./'))
-	.pipe(dest(RESOURCES_PATH));
+const cssSources = ['server/styles/scss/**/*.scss']
+const buildCss = () =>
+	src(cssSources)
+		.pipe(sourceMaps.init())
+		.pipe(sass({ style: 'compressed' }).on('error', sass.logError))
+		.pipe(rename({ suffix: '.min' }))
+		.pipe(sourceMaps.write('./'))
+		.pipe(dest(RESOURCES_PATH))
 
-const htmlSources = [
-	'views/*.ejs',
-];
-const packageJson = await readFile('package.json');
-let { version } = JSON.parse(packageJson);
+const htmlSources = ['views/*.ejs']
+const packageJson = await readFile('package.json')
+let { version } = JSON.parse(packageJson)
 const previewVersion = async () => {
 	// generate a relatively unique timestamp for cache invalidation of the preview site
-	const now = new Date();
-	const msNow = now.getTime() % 1_000_000;
-	version = msNow.toString();
-};
+	const now = new Date()
+	const msNow = now.getTime() % 1_000_000
+	version = msNow.toString()
+}
 
 const APP = {
 	APP_TITLE: process.env.APP_TITLE,
@@ -123,71 +113,66 @@ const APP = {
 	OG_IMAGE: process.env.OG_IMAGE,
 	INFO_URL: process.env.INFO_URL,
 	APP_LOGO_URL: process.env.APP_LOGO_URL,
-};
+	INCLUDE_CUSTOM_JS: process.env.INCLUDE_CUSTOM_JS === 'true',
+}
 
-const compressHtml = async () => src(htmlSources)
-	.pipe(ejs({
-		production: version,
-		serverAvailable: false,
-		version,
-		OVERRIDES,
-		APP,
-		query: {},
-	}))
-	.pipe(rename({ extname: '.html' }))
-	.pipe(htmlmin({ collapseWhitespace: true }))
-	.pipe(dest('./dist'));
+const compressHtml = async () =>
+	src(htmlSources)
+		.pipe(
+			ejs({
+				production: version,
+				serverAvailable: false,
+				version,
+				OVERRIDES,
+				APP,
+				query: {},
+			}),
+		)
+		.pipe(rename({ extname: '.html' }))
+		.pipe(htmlmin({ collapseWhitespace: true }))
+		.pipe(dest('./dist'))
 
-const otherFiles = [
-	'server/robots.txt',
-	'server/manifest.json',
-	'server/music/**/*.mp3',
-];
-const copyOtherFiles = () => src(otherFiles, { base: 'server/', encoding: false })
-	.pipe(dest('./dist'));
+const otherFiles = ['server/robots.txt', 'server/manifest.json', 'server/music/**/*.mp3']
+const copyOtherFiles = () => src(otherFiles, { base: 'server/', encoding: false }).pipe(dest('./dist'))
 
 // Copy JSON data files for static hosting
-const copyDataFiles = () => src([
-	'datagenerators/output/travelcities.json',
-	'datagenerators/output/regionalcities.json',
-	'datagenerators/output/stations.json',
-]).pipe(dest('./dist/data'));
+const copyDataFiles = () =>
+	src(['datagenerators/output/travelcities.json', 'datagenerators/output/regionalcities.json', 'datagenerators/output/stations.json']).pipe(
+		dest('./dist/data'),
+	)
 
-const s3 = s3Upload({
-	useIAM: true,
-}, {
-	region: 'us-east-1',
-});
-const uploadSources = [
-	'dist/**',
-	'!dist/images/**/*',
-	'!dist/fonts/**/*',
-];
+const s3 = s3Upload(
+	{
+		useIAM: true,
+	},
+	{
+		region: 'us-east-1',
+	},
+)
+const uploadSources = ['dist/**', '!dist/images/**/*', '!dist/fonts/**/*']
 
-const uploadCreator = (bucket) => () => src(uploadSources, { base: './dist', encoding: false })
-	.pipe(s3({
-		Bucket: bucket,
-		StorageClass: 'STANDARD',
-		maps: {
-			CacheControl: (keyname) => {
-				if (keyname.indexOf('index.html') > -1) return 'max-age=300'; // 10 minutes
-				if (keyname.indexOf('.mp3') > -1) return 'max-age=31536000'; // 1 year for mp3 files
-				return 'max-age=2592000'; // 1 month
+const uploadCreator = bucket => () =>
+	src(uploadSources, { base: './dist', encoding: false }).pipe(
+		s3({
+			Bucket: bucket,
+			StorageClass: 'STANDARD',
+			maps: {
+				CacheControl: keyname => {
+					if (keyname.indexOf('index.html') > -1) return 'max-age=300' // 10 minutes
+					if (keyname.indexOf('.mp3') > -1) return 'max-age=31536000' // 1 year for mp3 files
+					return 'max-age=2592000' // 1 month
+				},
 			},
-		},
-	}));
+		}),
+	)
 
-const imageSources = [
-	'server/fonts/**',
-	'server/images/**',
-	'!server/images/gimp/**',
-];
+const imageSources = ['server/fonts/**', 'server/images/**', '!server/images/gimp/**']
 
-const upload = uploadCreator(process.env.BUCKET);
-const uploadPreview = uploadCreator(process.env.BUCKET_PREVIEW);
+const upload = uploadCreator(process.env.BUCKET)
+const uploadPreview = uploadCreator(process.env.BUCKET_PREVIEW)
 
-const uploadImagesCreator = (bucket) => () => src(imageSources, { base: './server', encoding: false })
-	.pipe(
+const uploadImagesCreator = bucket => () =>
+	src(imageSources, { base: './server', encoding: false }).pipe(
 		s3({
 			Bucket: bucket,
 			StorageClass: 'STANDARD',
@@ -195,49 +180,50 @@ const uploadImagesCreator = (bucket) => () => src(imageSources, { base: './serve
 				CacheControl: () => 'max-age=31536000',
 			},
 		}),
-	);
+	)
 
-const uploadImages = uploadImagesCreator(process.env.BUCKET);
-const uploadImagesPreview = uploadImagesCreator(process.env.BUCKET_PREVIEW);
+const uploadImages = uploadImagesCreator(process.env.BUCKET)
+const uploadImagesPreview = uploadImagesCreator(process.env.BUCKET_PREVIEW)
 
-const copyImageSources = () => src(imageSources, { base: './server', encoding: false })
-	.pipe(dest('./dist'));
+const copyImageSources = () => src(imageSources, { base: './server', encoding: false }).pipe(dest('./dist'))
 
-const invalidateCreator = (distributionId) => () => cloudfront.send(new CreateInvalidationCommand({
-	DistributionId: distributionId,
-	InvalidationBatch: {
-		CallerReference: (new Date()).toLocaleString(),
-		Paths: {
-			Quantity: 1,
-			Items: ['/*'],
-		},
-	},
-}));
+const invalidateCreator = distributionId => () =>
+	cloudfront.send(
+		new CreateInvalidationCommand({
+			DistributionId: distributionId,
+			InvalidationBatch: {
+				CallerReference: new Date().toLocaleString(),
+				Paths: {
+					Quantity: 1,
+					Items: ['/*'],
+				},
+			},
+		}),
+	)
 
-const invalidate = invalidateCreator(process.env.DISTRIBUTION_ID);
-const invalidatePreview = invalidateCreator(process.env.DISTRIBUTION_ID_PREVIEW);
+const invalidate = invalidateCreator(process.env.DISTRIBUTION_ID)
+const invalidatePreview = invalidateCreator(process.env.DISTRIBUTION_ID_PREVIEW)
 
 const buildPlaylist = async () => {
-	const availableFiles = await reader();
-	const playlist = { availableFiles };
-	return file('playlist.json', JSON.stringify(playlist)).pipe(dest('./dist'));
-};
+	const availableFiles = await reader()
+	const playlist = { availableFiles }
+	return file('playlist.json', JSON.stringify(playlist)).pipe(dest('./dist'))
+}
 
 const logVersion = async () => {
-	log(`Version Published: ${version}`);
-};
+	log(`Version Published: ${version}`)
+}
 
-const buildDist = series(clean, parallel(buildJs, compressJsVendor, buildCss, compressHtml, copyOtherFiles, copyDataFiles, copyImageSources, buildPlaylist));
+const buildDist = series(
+	clean,
+	parallel(buildJs, compressJsVendor, buildCss, compressHtml, copyOtherFiles, copyDataFiles, copyImageSources, buildPlaylist),
+)
 
 // upload_images could be in parallel with upload, but _images logs a lot and has little changes
 // by running upload last the majority of the changes will be at the bottom of the log for easy viewing
-const publishFrontend = series(buildDist, uploadImages, upload, invalidate, logVersion);
-const stageFrontend = series(previewVersion, buildDist, uploadImagesPreview, uploadPreview, invalidatePreview);
+const publishFrontend = series(buildDist, uploadImages, upload, invalidate, logVersion)
+const stageFrontend = series(previewVersion, buildDist, uploadImagesPreview, uploadPreview, invalidatePreview)
 
-export default publishFrontend;
+export default publishFrontend
 
-export {
-	buildDist,
-	invalidate,
-	stageFrontend,
-};
+export { buildDist, invalidate, stageFrontend }

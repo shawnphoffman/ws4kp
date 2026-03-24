@@ -506,6 +506,8 @@ const getForecastFromLatLon = (latitude, longitude, fromGps = false) => {
 };
 
 const getCustomCode = async () => {
+	// skip custom.js loading if disabled via INCLUDE_CUSTOM_JS=false
+	if (window.WS4KP_SKIP_CUSTOM_JS) return;
 	// fetch the custom file and see if it returns a 200 status
 	const response = await fetch('scripts/custom.js', { method: 'HEAD' });
 	if (response.ok) {

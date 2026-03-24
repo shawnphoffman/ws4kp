@@ -27,6 +27,11 @@
     window.WS4KP_SERVER_AVAILABLE = true;
   </script>
   <% } %>
+  <% if (APP?.INCLUDE_CUSTOM_JS === false) { %>
+  <script>
+    window.WS4KP_SKIP_CUSTOM_JS = true;
+  </script>
+  <% } %>
 
   <% if (production) { %>
   <link rel="stylesheet" type="text/css" href="resources/ws.min.css?_=<%=production%>" />
