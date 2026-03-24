@@ -85,10 +85,7 @@ const fetchAsync = async (_url, responseType, _params = {}) => {
 	const checkUrl = new URL(_url, window.location.origin);
 	const shouldExcludeUserAgent = USER_AGENT_EXCLUDED_HOSTS.some((host) => checkUrl.hostname.includes(host));
 
-	// User-Agent handling:
-	// - Server mode (with caching proxy): Add User-Agent for all requests except excluded hosts
-	// - Static mode (direct requests): Only add User-Agent for api.weather.gov, avoiding CORS preflight issues with other services
-	const shouldAddUserAgent = !shouldExcludeUserAgent && (window.WS4KP_SERVER_AVAILABLE || _url.toString().match(/api\.weather\.gov/));
+	const shouldAddUserAgent = !shouldExcludeUserAgent;
 	if (shouldAddUserAgent) {
 		headers['user-agent'] = 'Weatherstar 4000+; weatherstar@netbymatt.com';
 	}

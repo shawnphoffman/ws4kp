@@ -8,6 +8,4 @@ COPY . .
 RUN npm run build
 
 EXPOSE 8080
-
-ENV DIST=1
 CMD ["npm", "start"]

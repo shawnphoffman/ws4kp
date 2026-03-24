@@ -9,9 +9,8 @@ server/music/*
 #and the sample songs
 !server/music/default
 
-#dist folder
-dist/*
-!dist/readme.txt
+# build output
+server/resources/
 
 #environment variables
 .env

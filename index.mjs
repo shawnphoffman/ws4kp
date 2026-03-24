@@ -44,6 +44,14 @@ app.set('view engine', 'ejs')
 // version
 const { version } = JSON.parse(fs.readFileSync('package.json'))
 
+// Auto-detect production mode: if built bundles exist, serve them
+const production = fs.existsSync('./server/resources/ws.min.js') ? version : false
+if (production) {
+	console.log(`Production mode: serving bundled assets (v${version})`)
+} else {
+	console.log('Development mode: serving individual modules')
+}
+
 // app configuration from environment variables
 const APP = {
 	APP_TITLE: process.env.APP_TITLE,
@@ -52,7 +60,7 @@ const APP = {
 	OG_IMAGE: process.env.OG_IMAGE,
 	INFO_URL: process.env.INFO_URL,
 	APP_LOGO_URL: process.env.APP_LOGO_URL,
-	INCLUDE_CUSTOM_JS: process.env.INCLUDE_CUSTOM_JS === 'true',
+	INCLUDE_CUSTOM_JS: process.env.INCLUDE_CUSTOM_JS !== 'false',
 }
 
 // read and parse environment variables to append to the query string
@@ -78,10 +86,9 @@ const hasQsVars = Object.entries(qsVars).length > 0
 // turn the environment query string into search params
 const defaultSearchParams = new URLSearchParams(qsVars).toString()
 
-const renderIndex = (req, res, production = false) => {
+const renderIndex = (req, res) => {
 	res.render('index', {
 		production,
-		serverAvailable: !process.env?.STATIC, // Disable caching proxy server in static mode
 		version,
 		OVERRIDES,
 		APP,
@@ -102,16 +109,10 @@ const handleQsRedirect = (req, res) => {
 }
 
 // NOTE: Do not add a third parameter here — Express passes `next` as the third
-// argument to route handlers, which would be truthy and break the production flag.
-const index = (req, res) => {
+// argument to route handlers, which would be truthy and break things.
+const handleIndex = (req, res) => {
 	if (!handleQsRedirect(req, res)) {
-		renderIndex(req, res, false)
-	}
-}
-
-const indexProduction = (req, res) => {
-	if (!handleQsRedirect(req, res)) {
-		renderIndex(req, res, true)
+		renderIndex(req, res)
 	}
 }
 
@@ -133,50 +134,42 @@ const geoip = (req, res) => {
 
 // Configure static asset caching with proper ETags and cache validation
 const staticOptions = {
-	etag: true, // Enable ETag generation
-	lastModified: true, // Enable Last-Modified headers
+	etag: true,
+	lastModified: true,
 	setHeaders: (res, path, stat) => {
-		// Generate ETag based on file modification time and size for better cache validation
 		const etag = `"${stat.mtime.getTime().toString(16)}-${stat.size.toString(16)}"`
 		res.setHeader('ETag', etag)
 
 		if (path.match(/\.(png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|eot)$/i)) {
-			// Images and fonts - cache for 1 year (immutable content)
 			res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
 		} else if (path.match(/\.(css|js|mjs)$/i)) {
-			// Scripts and styles - use cache validation instead of no-cache
-			// This allows browsers to use cached version if ETag matches (304 response)
 			res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate')
 		} else {
-			// Other files - cache for 1 hour with validation
 			res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate')
 		}
 	},
 }
 
-// Weather.gov API proxy (catch-all for any Weather.gov API endpoint)
-// Skip setting up routes for the caching proxy server in static mode
-if (!process.env?.STATIC) {
-	app.use('/api/', weatherProxy)
+// Weather.gov API proxy
+app.use('/api/', weatherProxy)
 
-	// Cache management DELETE endpoint to allow "uncaching" specific URLs
-	app.delete(/^\/cache\/.*/, (req, res) => {
-		const path = req.url.replace('/cache', '')
-		const cleared = cache.clearEntry(path)
-		res.json({ cleared, path })
-	})
+// Cache management DELETE endpoint
+app.delete(/^\/cache\/.*/, (req, res) => {
+	const path = req.url.replace('/cache', '')
+	const cleared = cache.clearEntry(path)
+	res.json({ cleared, path })
+})
 
-	// specific proxies for other services
-	app.use('/radar/', radarProxy)
-	app.use('/spc/', outlookProxy)
-	app.use('/mesonet/', mesonetProxy)
-	app.use('/forecast/', forecastProxy)
+// Proxies for other services
+app.use('/radar/', radarProxy)
+app.use('/spc/', outlookProxy)
+app.use('/mesonet/', mesonetProxy)
+app.use('/forecast/', forecastProxy)
 
-	// Playlist route is available in server mode (not in static mode)
-	app.get('/playlist.json', playlist)
-}
+// Playlist
+app.get('/playlist.json', playlist)
 
-// Dynamic manifest.json endpoint (overrides static file)
+// Dynamic manifest.json endpoint
 app.get('/manifest.json', async (req, res) => {
 	const manifest = JSON.parse(await readFile('./server/manifest.json'))
 	if (APP.APP_TITLE) manifest.name = APP.APP_TITLE
@@ -184,7 +177,6 @@ app.get('/manifest.json', async (req, res) => {
 })
 
 // Data endpoints - serve JSON data with short cache
-// Data can change between server restarts (custom cities, etc.) so never use immutable
 const dataCacheControl = 'public, max-age=300, must-revalidate'
 
 const dataEndpoints = {
@@ -206,27 +198,19 @@ Object.entries(dataEndpoints).forEach(([name, data]) => {
 // Serve additional music files (volume-mountable at /app/server/add-music)
 app.use('/music/add-music', express.static('./server/add-music', staticOptions))
 
-if (process.env?.DIST === '1') {
-	// Production ("distribution") mode uses pre-baked files in the dist directory
-	// 'npm run build' and then 'DIST=1 npm start'
-	app.use('/scripts', express.static('./server/scripts', staticOptions))
-	app.use('/geoip', geoip)
-	app.use('/music', express.static('./server/music', staticOptions))
+// Routes
+app.get('/', handleIndex)
+app.get('/index.html', handleIndex)
+app.use('/geoip', geoip)
+app.get('/.well-known/appspecific/com.chrome.devtools.json', devTools)
 
-	// render the EJS template dynamically for both / and /index.html
-	app.get('/', indexProduction)
-	app.get('/index.html', indexProduction)
-
-	app.use('/', express.static('./dist', staticOptions))
-} else {
-	// Development mode serves files from the server directory: 'npm start'
-	app.get('/index.html', index)
-	app.use('/geoip', geoip)
-	app.use('/resources', express.static('./server/scripts/modules'))
-	app.get('/', index)
-	app.get('/.well-known/appspecific/com.chrome.devtools.json', devTools)
-	app.get('*name', express.static('./server', staticOptions))
-}
+// Static file serving — unified, always from ./server
+// Built bundles (if they exist) are in ./server/resources/
+app.use('/resources', express.static('./server/resources', staticOptions))
+// Dev mode: individual module files also served under /resources
+app.use('/resources', express.static('./server/scripts/modules', staticOptions))
+// Everything else (images, fonts, styles, scripts, music, etc.)
+app.use('/', express.static('./server', staticOptions))
 
 const server = app.listen(port, () => {
 	console.log(`Server listening on port ${port}`)
